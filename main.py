@@ -1,4 +1,5 @@
 import random
+import names
 
 
 class Soldier:
@@ -239,12 +240,17 @@ def generate_army(name, size):
 
     for _ in range(size):
         soldier_rank = random.choices(["private", "corporal", "sergeant", "lieutenant", "captain"],
-                                      weights=[0.85, 0.1, 0.03, 0.015, 0.005], k=1)[0]
+                                    weights=[0.85, 0.1, 0.03, 0.015, 0.005], k=1)[0]
+
+        name = names.get_full_name()
+        health = random.randint(75, 100)
+        training = random.randint(50, 100)
+        morale = random.randint(50, 100)
 
         if soldier_rank in ["private", "corporal", "sergeant"]:
-            soldier = Soldier(rank=soldier_rank)
+            soldier = Soldier(name, health, training, morale, rank=soldier_rank)
         else:
-            officer = Officer(rank=soldier_rank)
+            officer = Officer(name, health, training, morale, rank=soldier_rank)
             officer.generate_skills()
             soldier = officer
 
