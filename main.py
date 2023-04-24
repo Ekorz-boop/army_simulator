@@ -341,6 +341,7 @@ def combat(army1, army2):
             hit_chance = soldier.combat_effectiveness() / 100
             if random.random() < hit_chance:
                 hits += 1
+        
         return hits
 
     def apply_hits(hits, defending_army):
@@ -501,7 +502,7 @@ def main():
                 army1 = armies[0]
                 army2 = armies[1]
                 winner, casualties1, casualties2 = combat(army1, army2)
-                print(f"{winner.name} wins!")
+                print(f"{winner} wins!")
                 print(f"{army1.name} casualties: {casualties1}")
                 print(f"{army2.name} casualties: {casualties2}")
 
