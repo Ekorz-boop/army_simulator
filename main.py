@@ -202,8 +202,8 @@ class Army:
 
 
 def generate_random_name():
-    first_names = ["John", "Michael", "David", "James", "Robert"]
-    last_names = ["Smith", "Johnson", "Williams", "Brown", "Jones"]
+    first_names = ["John", "Michael", "David", "James", "Robert", "Jonas", "Greg", "Jimmy", "Frank", "Charles", "Bob", "Ken", "Thomas", "Joseph", "Harry", "Henry", "Oliver", "Alexander", "Isaac", "Elias", "Frederick", "Malcolm"]
+    last_names = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Taylor", "Walker", "Walford", "Turner", "Axton", "Badger", "Beesley", "Adams", "Harris", "Burton", "Baker", "Payne", "Webb", "Foster", "Young", "Hughes"]
     return f"{random.choice(first_names)} {random.choice(last_names)}"
 
 
