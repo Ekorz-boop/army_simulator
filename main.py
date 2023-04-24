@@ -15,7 +15,7 @@ class Soldier:
         return self.training * self.morale * (1 - self.fatigue) * (1 - self.disease)
 
     def __str__(self):
-        return f"{self.name}, {self.rank}, Health: {self.health}, Effectiveness: {self.effectiveness()}"
+        return f"{self.rank} {self.name} ({self.unit_type.capitalize()})"
 
 
 class Infantry(Soldier):
@@ -37,23 +37,62 @@ class Artillery(Soldier):
 
 
 class Company:
-    def __init__(self, name, leader):
-        self.name = name
+    counter = 1
+
+    def __init__(self, leader, unit_type):
+        self.name = self.generate_name(unit_type)
         self.leader = leader
         self.soldiers = []
+        Company.counter += 1
+
+    @classmethod
+    def generate_name(cls, unit_type):
+        return f"{cls.counter} {unit_type.capitalize()} Company"
 
     def add_soldier(self, soldier):
         self.soldiers.append(soldier)
 
+    def find_soldier(self, name):
+        for soldier in self.soldiers:
+            if soldier.name == name:
+                return soldier
+        return None
+
+    def __str__(self):
+        return f"Company: {self.name} (Leader: {self.leader.name})"
+
 
 class Regiment:
-    def __init__(self, name, leader):
-        self.name = name
+    counter = 1
+
+    def __init__(self, leader, unit_type):
+        self.name = self.generate_name(unit_type)
         self.leader = leader
         self.companies = []
+        Regiment.counter += 1
+
+    @classmethod
+    def generate_name(cls, unit_type):
+        return f"{cls.counter} {unit_type.capitalize()} Regiment"
 
     def add_company(self, company):
         self.companies.append(company)
+
+    def find_soldier(self, name):
+        for company in self.companies:
+            soldier = company.find_soldier(name)
+            if soldier:
+                return soldier
+        return None
+    
+    def find_company(self, name):
+        for company in self.companies:
+            if company.name == name:
+                return company
+        return None
+
+    def __str__(self):
+        return f"Regiment: {self.name} (Leader: {self.leader.name})"
 
 
 class Officer(Soldier):
@@ -79,7 +118,8 @@ class Officer(Soldier):
 
 
 class Army:
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
         self.soldiers = []
 
     def add_soldier(self, soldier):
@@ -126,8 +166,39 @@ class Army:
         self.soldiers = [soldier for soldier in self.soldiers if soldier.health > 0]
         self.simulate_disease()
 
+    def find_soldier(self, name):
+        for soldier in self.soldiers:
+            if soldier.name == name:
+                return soldier
+        return None
+
+    def find_regiment(self, name):
+        for soldier in self.soldiers:
+            if isinstance(soldier, Officer) and soldier.leader_of:
+                regiment = next((r for r in soldier.leader_of if isinstance(r, Regiment)), None)
+                if regiment and regiment.name == name:
+                    return regiment
+        return None
+    
+    def remove_casualties(self, casualties):
+        for _ in range(casualties):
+            if self.soldiers:
+                soldier = random.choice(self.soldiers)
+                self.soldiers.remove(soldier)
+
     def __str__(self):
-        return "\n".join(str(soldier) for soldier in self.soldiers)
+        result = "Army:\n"
+        for soldier in self.soldiers:
+            if isinstance(soldier, Officer):
+                result += f"  {soldier}\n"
+                regiment = next((r for r in soldier.leader_of if isinstance(r, Regiment)), None)
+                if regiment:
+                    result += f"    {regiment}\n"
+                    for company in regiment.companies:
+                        result += f"      {company}\n"
+                        for company_soldier in company.soldiers:
+                            result += f"        {company_soldier}\n"
+        return result
 
 
 def generate_random_name():
@@ -161,11 +232,11 @@ def generate_random_soldier(is_officer=False):
             return Artillery(name, health, rank, training, morale)
 
 
-def generate_army(size):
-    army = Army()
+def generate_army(name, size):
+    army = Army(name)
 
-    regiment = Regiment("1st Infantry Regiment", None)
-    company = Company("A Company", None)
+    regiment = None
+    company = None
 
     for _ in range(size):
         rank_probabilities = [0.8, 0.15, 0.03, 0.015, 0.005, 0.001, 0.001]
@@ -181,12 +252,13 @@ def generate_army(size):
             officer.rank = rank
 
             if rank == "Major General":
+                regiment = Regiment(officer, officer.unit_type)
                 regiment.leader = officer
             elif rank == "Major":
-                regiment = Regiment(f"{officer.name}'s Regiment", officer)
+                regiment = Regiment(officer, officer.unit_type)
                 army.add_soldier(officer)
             elif rank == "Captain":
-                company = Company(f"{officer.name}'s Company", officer)
+                company = Company(officer, officer.unit_type)
                 regiment.add_company(company)
                 army.add_soldier(officer)
         else:
@@ -197,28 +269,155 @@ def generate_army(size):
     return army
 
 
+def combat(army1, army2):
+    def inflict_hits(attacking_army, defending_army):
+        hits = 0
+        for soldier in attacking_army.soldiers:
+            if isinstance(soldier, Officer):
+                if "strategy" in soldier.skills:
+                    hits += soldier.skills["strategy"] * 0.1
+            hit_chance = soldier.combat_effectiveness() / 100
+            if random.random() < hit_chance:
+                hits += 1
+        return hits
+
+    def apply_hits(hits, defending_army):
+        casualties = 0
+        for _ in range(int(hits)):
+            soldier = random.choice(defending_army.soldiers)
+            damage = random.randint(10, 50)
+            soldier.health -= damage
+            if soldier.health <= 0:
+                defending_army.soldiers.remove(soldier)
+                casualties += 1
+        return casualties
+
+    def morale_check(army):
+        total_morale = sum(soldier.morale for soldier in army.soldiers)
+        average_morale = total_morale / len(army.soldiers)
+        return average_morale > 30
+
+    rounds = 10
+    for _ in range(rounds):
+        hits1 = inflict_hits(army1, army2)
+        hits2 = inflict_hits(army2, army1)
+
+        casualties1 = apply_hits(hits2, army1)
+        casualties2 = apply_hits(hits1, army2)
+
+        if not morale_check(army1) or not morale_check(army2):
+            break
+
+    if len(army1.soldiers) > len(army2.soldiers):
+        winner = army1.name
+    else:
+        winner = army2.name
+
+    casualties1 = len(army1.soldiers) - sum(soldier.health > 0 for soldier in army1.soldiers)
+    casualties2 = len(army2.soldiers) - sum(soldier.health > 0 for soldier in army2.soldiers)
+
+    return winner, casualties1, casualties2
+
+
+def print_soldier_info(soldier):
+    print(f"Name: {soldier.name}")
+    print(f"Rank: {soldier.rank}")
+    print(f"Unit type: {soldier.unit_type.capitalize()}")
+    print(f"Health: {soldier.health}")
+    print(f"Training: {soldier.training:.2f}")
+    print(f"Morale: {soldier.morale:.2f}")
+
+
+def navigate_army(army):
+    while True:
+        print("\nCommands:")
+        print("  ls - list all regiments")
+        print("  reg <regiment_name> - explore a regiment")
+        print("  exit - exit the program")
+        command = input("Enter a command: ")
+
+        if command == "ls":
+            for soldier in army.soldiers:
+                if isinstance(soldier, Officer) and soldier.leader_of:
+                    regiment = next((r for r in soldier.leader_of if isinstance(r, Regiment)), None)
+                    if regiment:
+                        print(regiment)
+        elif command.startswith("reg "):
+            regiment_name = " ".join(command.split(" ")[1:])
+            regiment = army.find_regiment(regiment_name)
+            if regiment:
+                navigate_regiment(regiment)
+            else:
+                print("Regiment not found.")
+        elif command == "exit":
+            break
+        else:
+            print("Invalid command.")
+
+
+def navigate_regiment(regiment):
+    while True:
+        print("\nCommands:")
+        print("  ls - list all companies")
+        print("  comp <company_name> - explore a company")
+        print("  back - go back to army level")
+        command = input("Enter a command: ")
+
+        if command == "ls":
+            for company in regiment.companies:
+                print(company)
+        elif command.startswith("comp "):
+            company_name = " ".join(command.split(" ")[1:])
+            company = regiment.find_company(company_name)
+            if company:
+                navigate_company(company)
+            else:
+                print("Company not found.")
+        elif command == "back":
+            break
+        else:
+            print("Invalid command.")
+
+
+def navigate_company(company):
+    while True:
+        print("\nCommands:")
+        print("  ls - list all soldiers")
+        print("  find <name> - find a soldier by name")
+        print("  back - go back to regiment level")
+        command = input("Enter a command: ")
+
+        if command == "ls":
+            for soldier in company.soldiers:
+                print(soldier)
+        elif command.startswith("find "):
+            name = command.split(" ")[1]
+            soldier = company.find_soldier(name)
+            if soldier:
+                print_soldier_info(soldier)
+            else:
+                print("Soldier not found.")
+        elif command == "back":
+            break
+        else:
+            print("Invalid command.")
+
+
 def main():
-    my_army = Army()
+    army1 = generate_army("Red Army", 100)
+    army2 = generate_army("Blue Army", 100)
 
-    # Create custom higher-ranking officers
-    custom_officers = [
-        Officer("George Washington", 100, "General", 0.9, 0.95, 0.9, {"tactics": 0.85, "strategy": 0.9, "logistics": 0.8}),
-        Officer("Horatio Gates", 100, "Major General", 0.8, 0.9, 0.85, {"tactics": 0.75, "strategy": 0.8, "logistics": 0.7})
-    ]
+    print(f"Generated armies:")
+    print(army1.name)
+    print(army2.name)
 
-    for officer in custom_officers:
-        my_army.add_soldier(officer)
+    print("\nSimulating combat...")
+    winner, casualties1, casualties2 = combat(army1, army2)
 
-    for _ in range(100):
-        soldier = generate_random_soldier()
-        my_army.add_soldier(soldier)
-        # Assign soldiers to officers based on their rank
-        if soldier.rank == "Private":
-            random.choice(custom_officers).add_subordinate(soldier)
-        elif soldier.rank == "Sergeant":
-            custom_officers[1].add_subordinate(soldier)
-        elif soldier.rank == "Lieutenant":
-            custom_officers[0].add_subordinate(soldier)
+    print("\nCombat results:")
+    print(f"Winner: {winner}")
+    print(f"{army1.name} casualties: {casualties1} (Survivors: {len(army1.soldiers) - casualties1})")
+    print(f"{army2.name} casualties: {casualties2} (Survivors: {len(army2.soldiers) - casualties2})")
 
 
 if __name__ == "__main__":
