@@ -1,5 +1,6 @@
 import random
 import names
+import sys
 
 
 class Soldier:
@@ -272,7 +273,7 @@ def generate_army(name, size):
     regiment = None
     company = None
 
-    for _ in range(size):
+    for i in range(size):
         soldier_rank = random.choices(["private", "corporal", "sergeant", "lieutenant", "captain"],
                                     weights=[0.85, 0.1, 0.03, 0.015, 0.005], k=1)[0]
 
@@ -280,6 +281,10 @@ def generate_army(name, size):
         health = random.randint(75, 100)
         training = random.randint(50, 100)
         morale = random.randint(50, 100)
+
+        progress = (i + 1) / size * 100
+        sys.stdout.write(f'\rGenerating army... {progress:.1f}%')
+        sys.stdout.flush()
 
         if soldier_rank in ["private", "corporal", "sergeant"]:
             soldier = Soldier(name, health, training, morale, rank=soldier_rank)
@@ -310,8 +315,20 @@ def generate_army(name, size):
 
         company.add_soldier(soldier)
 
+    sys.stdout.write('\rGenerating army... Done!   \n')
+    sys.stdout.flush()
+
     return army
 
+
+def display_army_structure(army):
+    print(f"{army.name} Structure:")
+    for regiment in army.regiments:
+        print(f"  Regiment {regiment.name}:")
+        for company in regiment.companies:
+            print(f"    Company {company.name}:")
+            for soldier in company.soldiers:
+                print(f"      Soldier {soldier.name}, Rank: {soldier.rank}")
 
 
 def combat(army1, army2):
@@ -338,9 +355,12 @@ def combat(army1, army2):
         return casualties
 
     def morale_check(army):
-        total_morale = sum(soldier.morale for soldier in army.soldiers)
+        if not army.soldiers:
+            return False
+        
+        total_morale = sum([soldier.morale for soldier in army.soldiers])
         average_morale = total_morale / len(army.soldiers)
-        return average_morale > 30
+        return average_morale >= 25
 
     rounds = 10
     for _ in range(rounds):
@@ -449,20 +469,48 @@ def navigate_company(company):
 
 
 def main():
-    army1 = generate_army("Red Army", 100)
-    army2 = generate_army("Blue Army", 100)
+    armies = []
+    while True:
+        print("Available commands:")
+        print("1. Generate army")
+        print("2. Display armies")
+        print("3. Simulate combat")
+        print("4. Quit")
 
-    print(f"Generated armies:")
-    print(army1.name)
-    print(army2.name)
+        user_choice = input("Enter command number: ")
 
-    print("\nSimulating combat...")
-    winner, casualties1, casualties2 = combat(army1, army2)
+        if user_choice == "1":
+            army_name = input("Enter army name: ")
+            army_size = int(input("Enter army size: "))
+            army = generate_army(army_name, army_size)
+            armies.append(army)
+            print(f"{army_name} generated.")
 
-    print("\nCombat results:")
-    print(f"Winner: {winner}")
-    print(f"{army1.name} casualties: {casualties1} (Survivors: {len(army1.soldiers) - casualties1})")
-    print(f"{army2.name} casualties: {casualties2} (Survivors: {len(army2.soldiers) - casualties2})")
+        elif user_choice == "2":
+            if not armies:
+                print("No armies generated yet.")
+            else:
+                for army in armies:
+                    print(army.name)
+                    display_army_structure(army)
+
+        elif user_choice == "3":
+            if len(armies) < 2:
+                print("Need at least 2 armies to simulate combat.")
+            else:
+                army1 = armies[0]
+                army2 = armies[1]
+                winner, casualties1, casualties2 = combat(army1, army2)
+                print(f"{winner.name} wins!")
+                print(f"{army1.name} casualties: {casualties1}")
+                print(f"{army2.name} casualties: {casualties2}")
+
+        elif user_choice == "4":
+            print("Exiting...")
+            break
+
+        else:
+            print("Invalid command. Please try again.")
 
 
 if __name__ == "__main__":
