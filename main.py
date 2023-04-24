@@ -238,34 +238,40 @@ def generate_army(name, size):
     company = None
 
     for _ in range(size):
-        rank_probabilities = [0.8, 0.15, 0.03, 0.015, 0.005, 0.001, 0.001]
-        rank = random.choices(
-            ["Private", "Sergeant", "Lieutenant", "Captain", "Major", "General", "Major General"],
-            rank_probabilities,
-        )[0]
+        soldier_rank = random.choices(["private", "corporal", "sergeant", "lieutenant", "captain"],
+                                      weights=[0.85, 0.1, 0.03, 0.015, 0.005], k=1)[0]
 
-        soldier = generate_random_soldier(rank in ["Major", "General", "Major General"])
-
-        if rank in ["Major", "General", "Major General"]:
-            officer = soldier
-            officer.rank = rank
-
-            if rank == "Major General":
-                regiment = Regiment(officer, officer.unit_type)
-                regiment.leader = officer
-            elif rank == "Major":
-                regiment = Regiment(officer, officer.unit_type)
-                army.add_soldier(officer)
-            elif rank == "Captain":
-                company = Company(officer, officer.unit_type)
-                regiment.add_company(company)
-                army.add_soldier(officer)
+        if soldier_rank in ["private", "corporal", "sergeant"]:
+            soldier = Soldier(rank=soldier_rank)
         else:
-            soldier.rank = rank
-            company.add_soldier(soldier)
-            army.add_soldier(soldier)
+            officer = Officer(rank=soldier_rank)
+            officer.generate_skills()
+            soldier = officer
+
+            if soldier_rank == "captain":
+                if regiment is None or regiment.is_full():
+                    regiment = Regiment(name, len(army.regiments) + 1)
+                    army.add_regiment(regiment)
+                regiment.assign_leader(soldier)
+
+            elif soldier_rank == "lieutenant":
+                if company is None or company.is_full():
+                    company = Company(regiment.name, len(regiment.companies) + 1)
+                    regiment.add_company(company)
+                company.assign_leader(soldier)
+
+        if regiment is None or regiment.is_full():
+            regiment = Regiment(name, len(army.regiments) + 1)
+            army.add_regiment(regiment)
+
+        if company is None or company.is_full():
+            company = Company(regiment.name, len(regiment.companies) + 1)
+            regiment.add_company(company)
+
+        company.add_soldier(soldier)
 
     return army
+
 
 
 def combat(army1, army2):
