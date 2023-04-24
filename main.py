@@ -48,7 +48,7 @@ class Company:
 
     @classmethod
     def generate_name(cls, unit_type):
-        return f"{cls.counter} {unit_type.capitalize()} Company"
+        return f"{cls.counter} {str(unit_type).capitalize()} Company"
 
     def add_soldier(self, soldier):
         self.soldiers.append(soldier)
@@ -58,6 +58,16 @@ class Company:
             if soldier.name == name:
                 return soldier
         return None
+    
+    def is_full(self):
+        max_soldiers = 50  # soldiers per company
+        return len(self.soldiers) >= max_soldiers
+    
+    def assign_leader(self, leader):
+        if isinstance(leader, Officer) and leader.rank == "lieutenant":
+            self.leader = leader
+        else:
+            raise ValueError("Only lieutenants can be assigned as company leaders.")
 
     def __str__(self):
         return f"Company: {self.name} (Leader: {self.leader.name})"
@@ -74,7 +84,7 @@ class Regiment:
 
     @classmethod
     def generate_name(cls, unit_type):
-        return f"{cls.counter} {unit_type.capitalize()} Regiment"
+        return f"{cls.counter} {str(unit_type).capitalize()} Regiment"
 
     def add_company(self, company):
         self.companies.append(company)
@@ -91,19 +101,35 @@ class Regiment:
             if company.name == name:
                 return company
         return None
+    
+    def is_full(self):
+        max_companies = 4  # companies per regiment
+        return len(self.companies) >= max_companies
+    
+    def assign_leader(self, leader):
+        if isinstance(leader, Officer) and leader.rank == "captain":
+            self.leader = leader
+        else:
+            raise ValueError("Only captains can be assigned as regiment leaders.")
 
     def __str__(self):
         return f"Regiment: {self.name} (Leader: {self.leader.name})"
 
 
 class Officer(Soldier):
-    def __init__(self, name, health, rank, training, morale, leadership, skills=None):
-        super().__init__(name, health, rank, training, morale)
-        self.leadership = leadership
+    def __init__(self, name, health, training, morale, officer_rank, skills=None):
+        super().__init__(name, health, training, morale, rank=officer_rank)
         self.subordinates = []
-        self.skills = skills if skills else {}
-
-        if rank in ["Major", "General", "Major General"]:
+        self.skills = skills or {
+            'strategy': 0,
+            'tactics': 0,
+            'logistics': 0,
+            'communication': 0,
+            'discipline': 0,
+            'inspiration': 0
+        }
+        
+        if officer_rank in ["Major", "General", "Major General"]:
             self.skills.update({
                 "diplomacy": random.uniform(0, 1),
                 "intelligence": random.uniform(0, 1),
@@ -112,6 +138,10 @@ class Officer(Soldier):
 
     def add_subordinate(self, soldier):
         self.subordinates.append(soldier)
+
+    def generate_skills(self):
+        for skill in self.skills:
+            self.skills[skill] = random.randint(1, 100)
 
     def __str__(self):
         subordinates_str = ", ".join(soldier.name for soldier in self.subordinates)
@@ -122,9 +152,13 @@ class Army:
     def __init__(self, name):
         self.name = name
         self.soldiers = []
+        self.regiments = [] 
 
     def add_soldier(self, soldier):
         self.soldiers.append(soldier)
+
+    def add_regiment(self, regiment):
+        self.regiments.append(regiment)
 
     def simulate_disease(self):
         for soldier in self.soldiers:
@@ -250,7 +284,7 @@ def generate_army(name, size):
         if soldier_rank in ["private", "corporal", "sergeant"]:
             soldier = Soldier(name, health, training, morale, rank=soldier_rank)
         else:
-            officer = Officer(name, health, training, morale, rank=soldier_rank)
+            officer = Officer(name, health, training, morale, officer_rank=soldier_rank)
             officer.generate_skills()
             soldier = officer
 
@@ -267,7 +301,7 @@ def generate_army(name, size):
             company.assign_leader(soldier)
 
         if regiment is None or regiment.is_full():
-            regiment = Regiment(name, len(army.regiments) + 1)
+            regiment = Regiment(army.name, len(army.regiments) + 1)
             army.add_regiment(regiment)
 
         if company is None or company.is_full():
