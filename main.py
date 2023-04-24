@@ -234,7 +234,6 @@ def generate_random_soldier(is_officer=False):
 
 def generate_army(name, size):
     army = Army(name)
-
     regiment = None
     company = None
 
