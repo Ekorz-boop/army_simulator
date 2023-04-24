@@ -3,14 +3,14 @@ import names
 
 
 class Soldier:
-    def __init__(self, name, health, rank, training, morale):
+    def __init__(self, name, health, training, morale, rank):
         self.name = name
         self.health = health
-        self.rank = rank
         self.training = training
         self.morale = morale
+        self.rank = rank
         self.fatigue = 0
-        self.disease = 0
+        self.diseases = []
 
     def effectiveness(self):
         return self.training * self.morale * (1 - self.fatigue) * (1 - self.disease)
