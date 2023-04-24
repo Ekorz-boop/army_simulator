@@ -334,15 +334,16 @@ def display_army_structure(army):
 def combat(army1, army2):
     def inflict_hits(attacking_army, defending_army):
         hits = 0
+        strategy_hits = 0
         for soldier in attacking_army.soldiers:
             if isinstance(soldier, Officer):
                 if "strategy" in soldier.skills:
-                    hits += soldier.skills["strategy"] * 0.1
+                    strategy_hits += soldier.skills["strategy"] * 0.1
             hit_chance = soldier.combat_effectiveness() / 100
             if random.random() < hit_chance:
                 hits += 1
-        
-        return hits
+       
+        return hits + strategy_hits
 
     def apply_hits(hits, defending_army):
         casualties = 0
@@ -358,7 +359,7 @@ def combat(army1, army2):
     def morale_check(army):
         if not army.soldiers:
             return False
-        
+       
         total_morale = sum([soldier.morale for soldier in army.soldiers])
         average_morale = total_morale / len(army.soldiers)
         return average_morale >= 25
@@ -383,6 +384,7 @@ def combat(army1, army2):
     casualties2 = len(army2.soldiers) - sum(soldier.health > 0 for soldier in army2.soldiers)
 
     return winner, casualties1, casualties2
+
 
 
 def print_soldier_info(soldier):
