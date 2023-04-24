@@ -254,17 +254,17 @@ def generate_army(name, size):
             officer.generate_skills()
             soldier = officer
 
-            if soldier_rank == "captain":
-                if regiment is None or regiment.is_full():
-                    regiment = Regiment(name, len(army.regiments) + 1)
-                    army.add_regiment(regiment)
-                regiment.assign_leader(soldier)
+        if soldier_rank == "captain":
+            if regiment is None or regiment.is_full():
+                regiment = Regiment(name, len(army.regiments) + 1)
+                army.add_regiment(regiment)
+            regiment.assign_leader(soldier)
 
-            elif soldier_rank == "lieutenant":
-                if company is None or company.is_full():
-                    company = Company(regiment.name, len(regiment.companies) + 1)
-                    regiment.add_company(company)
-                company.assign_leader(soldier)
+        elif soldier_rank == "lieutenant":
+            if company is None or company.is_full():
+                company = Company(regiment.name, len(regiment.companies) + 1)
+                regiment.add_company(company)
+            company.assign_leader(soldier)
 
         if regiment is None or regiment.is_full():
             regiment = Regiment(name, len(army.regiments) + 1)
